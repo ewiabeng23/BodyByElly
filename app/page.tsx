@@ -10,11 +10,18 @@ export default function Home() {
         Your 6-week transformation starts here.
       </p>
 
-      <Link href="/signup"
-        style={{ padding: ".7rem 1.5rem", borderRadius: 8, background: "#0F766E",
-          color: "white", fontWeight: 600, textDecoration: "none" }}>
-        Sign up
-      </Link>
+      <div style={{ display: "flex", gap: "1rem" }}>
+        <Link href="/signup"
+          style={{ padding: ".7rem 1.5rem", borderRadius: 8, background: "#0F766E",
+            color: "white", fontWeight: 600, textDecoration: "none" }}>
+          Sign up
+        </Link>
+        <Link href="/login"
+          style={{ padding: ".7rem 1.5rem", borderRadius: 8, border: "1px solid #0F766E",
+            color: "#0F766E", fontWeight: 600, textDecoration: "none" }}>
+          Log in
+        </Link>
+      </div>
     </main>
   );
 }
