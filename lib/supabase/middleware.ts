@@ -1,3 +1,7 @@
+// lib/supabase/middleware.ts
+// Runs on every request: refreshes the auth session cookie so logins survive
+// page loads, and blocks logged-out users from protected routes at the edge.
+
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
@@ -25,15 +29,18 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  // Refresh the session on every request. Do not add code between
-  // createServerClient and getUser() — it must run immediately.
+  // SECURITY: refresh the session. Do NOT put code between createServerClient
+  // and getUser() — it must run first, or sessions won't refresh correctly.
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Protect members-only routes at the edge.
+  // SECURITY (C1): protected routes require a logged-in user. This is an
+  // edge-level "are you logged in?" check. The finer-grained "are you an
+  // admin?" check lives in requireAdmin() on the /admin page itself.
   const path = request.nextUrl.pathname;
-  if (path.startsWith("/dashboard") && !user) {
+  const protectedPrefixes = ["/dashboard", "/admin"];
+  if (protectedPrefixes.some((p) => path.startsWith(p)) && !user) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
