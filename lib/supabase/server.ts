@@ -1,3 +1,8 @@
+// lib/supabase/server.ts
+// Supabase client for SERVER (Server Components / Actions) use.
+// Reads and writes the auth session via cookies, so the server knows who the
+// user is on each request. Still uses the public anon key + RLS — not a
+// privileged client — so it too is bound by row-level security.
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
@@ -17,7 +22,8 @@ export async function createClient() {
               cookieStore.set(name, value, options)
             );
           } catch {
-            // Called from a Server Component — safe to ignore; middleware refreshes sessions.
+            // Called from a Server Component (can't set cookies there) —
+            // safe to ignore; the middleware refreshes the session instead.
           }
         },
       },

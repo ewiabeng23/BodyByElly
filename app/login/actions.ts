@@ -1,3 +1,5 @@
+// app/login/actions.ts
+// Server Action — authenticates a user server-side, then redirects.
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
@@ -16,12 +18,16 @@ export async function login(
   }
 
   const supabase = await createClient();
+
+  // SECURITY (B2): Supabase verifies credentials. A wrong password (or an
+  // unconfirmed email, since verify is on) returns an error and no session.
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
     return { error: error.message };
   }
 
+  // Refresh cached layout so the UI reflects the now-logged-in state, then go in.
   revalidatePath("/", "layout");
   redirect("/dashboard");
 }
