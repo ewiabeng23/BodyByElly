@@ -1,27 +1,30 @@
 // app/dashboard/page.tsx
-// Members-only page. Server Component — auth check and role read run on the
-// server, so they can be trusted (never exposed to the browser).
+// Members-only page. Server Component — auth + role + entitlement read on the
+// server, so all of it can be trusted (never exposed to the browser).
 
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { logout } from "@/app/logout/actions";
+import { startCheckout } from "@/app/checkout/actions";
 
 export default async function Dashboard() {
   const supabase = await createClient();
 
-  // SECURITY (C1/C3): confirm the user server-side (defence in depth alongside middleware).
+  // SECURITY (C1/C3): confirm the user server-side.
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  // SECURITY (E2): RLS returns only THIS user's own profile row.
+  // SECURITY (E2): RLS returns only THIS user's own rows.
   const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
+    .from("profiles").select("role").eq("id", user.id).single();
+
+  const { data: entitlement } = await supabase
+    .from("entitlements").select("status")
+    .eq("user_id", user.id).eq("product", "challenge").maybeSingle();
 
   const isAdmin = profile?.role === "admin";
+  const hasPaid = entitlement?.status === "active";
 
   return (
     <main style={{ minHeight: "100vh", display: "flex", flexDirection: "column",
@@ -31,12 +34,19 @@ export default async function Dashboard() {
       <p>Logged in as <strong>{user.email}</strong></p>
       <p>Role: <strong>{profile?.role ?? "unknown"}</strong></p>
 
-      {/* Only admins see the door to /admin. The real gate is server-side in requireAdmin(). */}
-      {isAdmin && (
-        <Link href="/admin" style={{ color: "#0F766E", fontWeight: 600 }}>
-          Go to Admin area
-        </Link>
+      {hasPaid ? (
+        <p style={{ color: "green", fontWeight: 600 }}>✓ You have full access to the challenge.</p>
+      ) : (
+        <form action={startCheckout}>
+          <button type="submit"
+            style={{ padding: ".8rem 1.75rem", borderRadius: 8, border: "none",
+              background: "#0F766E", color: "white", fontWeight: 700, fontSize: "1.05rem", cursor: "pointer" }}>
+            Join the challenge — £40
+          </button>
+        </form>
       )}
+
+      {isAdmin && <Link href="/admin" style={{ color: "#0F766E", fontWeight: 600 }}>Go to Admin area</Link>}
 
       <form action={logout}>
         <button type="submit"
